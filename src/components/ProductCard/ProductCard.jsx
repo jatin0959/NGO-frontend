@@ -6,22 +6,19 @@ import { Link } from "react-router-dom"
 import { toast } from "sonner"
 
 function ProductCard({ product }) {
-  console.log(product)
   const { userInterests, api } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
+  const [imageError, setImageError] = useState(false)
 
   const hasShownInterest = userInterests.some((interest) => interest.listing._id === product._id)
 
-  const baseurl = import.meta.env.VITE_BASE_URL
+  const baseurl = (import.meta.env.VITE_BASE_URL || "http://localhost:3002").replace(/\/+$/, "")
 
   async function showInterest(id) {
-    // Don't proceed if already loading or interest shown
     if (isLoading || hasShownInterest) return
-
     setIsLoading(true)
 
     try {
-      // Check if token exists
       const token = localStorage.getItem("token")
       if (!token) {
         toast.error("Please login to show interest")
@@ -29,8 +26,7 @@ function ProductCard({ product }) {
         return
       }
 
-      // Use the api instance from auth context
-      const res = await api.post(`${baseurl}api/interests`, {
+      const res = await api.post(`${baseurl}/api/interests`, {
         listingId: id,
         listingType: "product",
         message: "hello",
@@ -43,7 +39,6 @@ function ProductCard({ product }) {
       }
     } catch (error) {
       console.error("Error showing interest:", error)
-
       if (error.code === "ERR_NETWORK") {
         toast.error("Network error. Please check your connection.")
       } else if (error.response?.status === 401) {
@@ -57,28 +52,27 @@ function ProductCard({ product }) {
       setIsLoading(false)
     }
   }
-  console.log("image--->", `${product.images[0]}`)
 
-  console.log("Product images:", product.images)
-  console.log("Base URL:", baseurl)
+  const imageUrl = product.images?.[0] ? `${baseurl}${product.images[0]}` : null
 
   return (
     <div className="w-72 bg-white border border-lightOrange rounded-lg overflow-hidden">
       <Link to={`/productDetail/${product._id}`}>
-        <img
-          src={
-            product.images && product.images.length > 0
-              ? `${baseurl}/uploads/${product.images[0].split("/").pop()}`
-              : "/placeholder.svg"
-          }
-          className="w-full h-40 object-cover"
-          alt={product.title}
-          onError={(e) => {
-            e.target.onerror = null
-            e.target.src = "/placeholder.svg"
-            console.log("Image failed to load, using:", product.images[0])
-          }}
-        />
+        {imageUrl && !imageError ? (
+          <img
+            src={imageUrl}
+            className="w-full h-40 object-cover"
+            alt={product.title}
+            onError={() => {
+              setImageError(true)
+              console.log("Image failed to load, showing fallback.")
+            }}
+          />
+        ) : (
+          <div className="w-full h-40 flex items-center justify-center bg-gray-100 text-gray-500 text-sm">
+            No image found
+          </div>
+        )}
         <div className="px-5 py-3">
           <h4 className="text-lg font-semibold mb-1 truncate" title={product.title}>
             {product.title}

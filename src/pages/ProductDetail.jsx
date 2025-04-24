@@ -14,9 +14,10 @@ function ProductDetail() {
   const [productData, setProductData] = useState({})
   const mainSliderRef = useRef(null)
   const thumbSliderRef = useRef(null)
-  const { userInterests, api, getUserInterests } = useAuth() // Moved hook call outside conditional block
-
+  const { userInterests, api, getUserInterests } = useAuth()
   const { id } = useParams()
+
+  const BASE_URL = "http://localhost:3002"
 
   useEffect(() => {
     async function getProduct() {
@@ -40,7 +41,6 @@ function ProductDetail() {
     try {
       await api.post(`api/interests`, { listingId: id, listingType: "product", message: "hello" })
       toast.success("Interest shown successfully")
-      // Refresh user interests
       getUserInterests()
     } catch (error) {
       console.error("Error showing interest:", error)
@@ -86,6 +86,8 @@ function ProductDetail() {
     },
   }
 
+  const images = productData.images?.length ? productData.images : productData.files || []
+
   return (
     <>
       {loading && <Loader />}
@@ -97,9 +99,13 @@ function ProductDetail() {
         <div className="customContainer bg-white px-3 mb-5 rounded-lg shadow-md grid md:grid-cols-2 gap-4">
           <div className="grid gap-2 py-5">
             <Splide options={options} ref={mainSliderRef} id="main-slider">
-              {productData?.files?.map((file, index) => (
+              {images.map((file, index) => (
                 <SplideSlide key={index}>
-                  <img src={file || "/placeholder.svg"} className="w-full h-full object-contain rounded-lg" alt="" />
+                  <img
+                    src={file ? `${BASE_URL}${file}` : "/placeholder.svg"}
+                    className="w-full h-full object-contain rounded-lg"
+                    alt={`Product ${index}`}
+                  />
                 </SplideSlide>
               ))}
             </Splide>
@@ -113,9 +119,13 @@ function ProductDetail() {
                 }
               }}
             >
-              {productData?.files?.map((file, index) => (
+              {images.map((file, index) => (
                 <SplideSlide key={index}>
-                  <img src={file || "/placeholder.svg"} className="w-full h-full object-contain rounded-lg" alt="" />
+                  <img
+                    src={file ? `${BASE_URL}${file}` : "/placeholder.svg"}
+                    className="w-full h-full object-contain rounded-lg"
+                    alt={`Thumb ${index}`}
+                  />
                 </SplideSlide>
               ))}
             </Splide>
@@ -164,10 +174,7 @@ function ProductDetail() {
             </ul>
             <div>
               {userInterests.filter((interest) => interest.listing?._id === productData._id).length > 0 ? (
-                <button
-                  className="btn-block rounded-lg bg-orange duration-200 text-white font-medium text-sm py-2"
-                  disabled
-                >
+                <button className="btn-block rounded-lg bg-orange duration-200 text-white font-medium text-sm py-2" disabled>
                   Interest shown
                 </button>
               ) : (
@@ -189,10 +196,7 @@ function ProductDetail() {
                         <button className="btn" onClick={() => document.getElementById("my_modal_3").close()}>
                           Cancel
                         </button>
-                        <button
-                          onClick={() => showInterst(productData._id)}
-                          className="btn bg-lightOrange text-white hover:bg-orange"
-                        >
+                        <button onClick={() => showInterst(productData._id)} className="btn bg-lightOrange text-white hover:bg-orange">
                           Show Interest
                         </button>
                       </div>
