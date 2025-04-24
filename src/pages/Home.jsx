@@ -144,15 +144,19 @@ function Home() {
         <section className="customContainer my-10">
           <h3 className="text-4xl font-bold text-center mb-5">Latest Product Ads</h3>
           <div>
-            <Splide aria-label="products slides" options={options} className="pb-8">
-              {productsList?.slice(0, 5)?.map((product, index) => {
-                return (
-                  <SplideSlide key={index} className="flex justify-center items-center">
-                    <ProductCard product={product} />
-                  </SplideSlide>
-                )
-              })}
-            </Splide>
+          <Splide aria-label="products slides" options={options} className="pb-8">
+  {productsList
+    ?.filter(product => product.status === "active")
+    ?.slice(0, 5)
+    ?.map((product, index) => {
+      return (
+        <SplideSlide key={index} className="flex justify-center items-center">
+          <ProductCard product={product} />
+        </SplideSlide>
+      )
+    })}
+</Splide>
+
           </div>
           <div className="text-center">
             <Link
