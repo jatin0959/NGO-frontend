@@ -5,7 +5,8 @@ import { Link } from "react-router-dom"
 import Navbar from "../components/Navbar/Navbar"
 import Footer from "../components/Footer/Footer"
 
-const BASE_URL = import.meta.env.VITE_BASE_URL
+const BASE_URL = import.meta.env.VITE_BASE_URL;
+
 
 function Interests() {
   const { userInterests } = useAuth()
