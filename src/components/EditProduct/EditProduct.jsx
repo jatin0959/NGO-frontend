@@ -7,7 +7,8 @@ import axios from "axios"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
-const host_url = import.meta.env.VITE_BASE_URL
+const host_url = import.meta.env.VITE_BASE_URL.replace(/\/+$/, "")
+
 
 function EditProduct() {
   const { productId } = useParams()

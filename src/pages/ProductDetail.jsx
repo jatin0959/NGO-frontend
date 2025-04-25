@@ -17,7 +17,8 @@ function ProductDetail() {
   const { userInterests, api, getUserInterests } = useAuth()
   const { id } = useParams()
 
-  const BASE_URL = import.meta.env.VITE_BASE_URL;
+  const BASE_URL = import.meta.env.VITE_BASE_URL.replace(/\/+$/, "");
+
 
 
   useEffect(() => {

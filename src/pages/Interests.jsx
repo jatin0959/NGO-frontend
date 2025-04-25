@@ -5,6 +5,8 @@ import { Link } from "react-router-dom"
 import Navbar from "../components/Navbar/Navbar"
 import Footer from "../components/Footer/Footer"
 
+const BASE_URL = import.meta.env.VITE_BASE_URL
+
 function Interests() {
   const { userInterests } = useAuth()
 
@@ -19,7 +21,9 @@ function Interests() {
           {userInterests?.length > 0 ? (
             userInterests.map((interest) => {
               const listing = interest.listing
-              const image = listing?.files?.[0] || listing?.images?.[0] || "/placeholder.svg"
+              const imagePath = listing?.files?.[0] || listing?.images?.[0]
+              const image = imagePath ? `${BASE_URL}${imagePath}` : "/placeholder.svg"
+
               const detailUrl = `/${listing?.__t === "ProductListing" ? "productDetail" : "serviceDetail"}/${listing._id}`
 
               return (
@@ -44,7 +48,9 @@ function Interests() {
               )
             })
           ) : (
-            <div className="col-span-full text-center py-10 text-gray-500">You have not shown interest in any listing yet.</div>
+            <div className="col-span-full text-center py-10 text-gray-500">
+              You have not shown interest in any listing yet.
+            </div>
           )}
         </div>
       </main>
