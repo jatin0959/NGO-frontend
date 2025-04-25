@@ -17,7 +17,8 @@ function ProductDetail() {
   const { userInterests, api, getUserInterests } = useAuth()
   const { id } = useParams()
 
-  const BASE_URL = "http://localhost:3002"
+  const BASE_URL = import.meta.env.VITE_BASE_URL;
+
 
   useEffect(() => {
     async function getProduct() {
