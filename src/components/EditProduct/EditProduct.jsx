@@ -5,6 +5,7 @@ import Footer from "../Footer/Footer"
 import { useParams } from "react-router-dom"
 import axios from "axios"
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 const host_url = import.meta.env.VITE_BASE_URL
 
@@ -13,18 +14,25 @@ function EditProduct() {
   const [formData, setFormData] = useState({})
   const [state, setState] = useState("")
   const [city, setCity] = useState("")
-  const [file, setFile] = useState(null)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     const getServiceDetails = async () => {
-      const response = await axios.get(`${host_url}/listings/product/${productId}`)
-      const data = response.data.data
-      console.log(data)
-      await getPincode(data.pincode)
-      setFormData(data)
+      try {
+        const response = await axios.get(`${host_url}/listings/product/${productId}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        })
+        const data = response.data.data
+        await getPincode(data.pincode)
+        setFormData(data)
+      } catch (err) {
+        toast.error("Failed to load product data")
+      }
     }
     getServiceDetails()
-  }, [])
+  }, [productId])
 
   const getPincode = async (pincode) => {
     try {
@@ -36,7 +44,7 @@ function EditProduct() {
         setCity(postOffice.District)
       }
     } catch (error) {
-      console.log(error)
+      console.error("Failed to fetch location:", error)
     }
   }
 
@@ -47,23 +55,26 @@ function EditProduct() {
 
   const handleUpdatedForm = async (e) => {
     e.preventDefault()
+    setSaving(true)
 
-    let image
-    if (file) {
-      image = URL.createObjectURL(file)
+    try {
+      const url = `${host_url.replace(/\/+$/, "")}/listings/product/${productId}`
+
+      const response = await axios.put(url, formData, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+      })
+
+      toast.success("Product updated successfully")
+      console.log("Updated:", response.data)
+    } catch (err) {
+      console.error(err)
+      toast.error("Failed to update product")
+    } finally {
+      setSaving(false)
     }
-
-    const finalFormData = { ...formData, files: image }
-    console.log(finalFormData)
-
-    const url = `${host_url.replace(/\/+$/, "")}/listings/product/${productId}`
-
-    const response = await axios.put(url, finalFormData, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    })
-    
-
-    console.log(response)
   }
 
   return (
@@ -79,14 +90,14 @@ function EditProduct() {
               <h4 className="text-neutral-800 font-semibold text-xl">Edit</h4>
             </div>
 
-            <form>
+            <form onSubmit={handleUpdatedForm}>
               <div className="grid lg:grid-cols-3 md:grid-cols-2 grid-cols-1 gap-4">
                 <div>
                   <label className="text-gray-600 text-sm mb-1 font-medium block">Title</label>
                   <input
                     name="title"
                     type="text"
-                    value={formData.title}
+                    value={formData.title || ""}
                     onChange={handleFormData}
                     className="bg-gray-100 w-full text-gray-800 text-sm px-4 py-3 rounded focus:bg-transparent outline-lightOrange transition-all"
                     placeholder="Enter Product title"
@@ -97,8 +108,7 @@ function EditProduct() {
                   <select
                     name="subCategory"
                     className="bg-gray-100 w-full text-gray-800 text-sm px-4 py-3 rounded focus:bg-transparent outline-lightOrange transition-all"
-                    id=""
-                    value={formData.subCategory}
+                    value={formData.subCategory || ""}
                     onChange={handleFormData}
                   >
                     <option value="">Select Sub-Category</option>
@@ -114,7 +124,7 @@ function EditProduct() {
                   <input
                     name="quantity"
                     type="number"
-                    value={formData.quantity}
+                    value={formData.quantity || ""}
                     onChange={handleFormData}
                     className="bg-gray-100 w-full text-gray-800 text-sm px-4 py-3 rounded focus:bg-transparent outline-lightOrange transition-all"
                     placeholder="Enter Product quantity"
@@ -125,7 +135,7 @@ function EditProduct() {
                   <input
                     name="pincode"
                     type="text"
-                    value={formData.pincode}
+                    value={formData.pincode || ""}
                     onChange={handleFormData}
                     className="bg-gray-100 w-full text-gray-800 text-sm px-4 py-3 rounded focus:bg-transparent outline-lightOrange transition-all"
                     placeholder="Enter Pincode"
@@ -137,8 +147,8 @@ function EditProduct() {
                     name="city"
                     type="text"
                     value={city}
-                    className="bg-gray-100 w-full text-gray-800 text-sm px-4 py-3 rounded focus:bg-transparent outline-lightOrange transition-all input-disabled"
                     disabled
+                    className="bg-gray-100 w-full text-gray-800 text-sm px-4 py-3 rounded outline-lightOrange input-disabled"
                   />
                 </div>
                 <div>
@@ -147,38 +157,28 @@ function EditProduct() {
                     name="state"
                     type="text"
                     value={state}
-                    className="bg-gray-100 w-full text-gray-800 text-sm px-4 py-3 rounded focus:bg-transparent outline-lightOrange transition-all input-disabled"
                     disabled
+                    className="bg-gray-100 w-full text-gray-800 text-sm px-4 py-3 rounded outline-lightOrange input-disabled"
                   />
                 </div>
-                <div className="lg:col-span-2 md:col-span-1">
+                <div className="lg:col-span-3">
                   <label className="text-gray-600 text-sm mb-1 font-medium block">Description</label>
                   <textarea
                     rows="4"
                     name="description"
-                    value={formData.description}
+                    value={formData.description || ""}
                     onChange={handleFormData}
                     className="bg-gray-100 w-full text-gray-800 text-sm px-4 py-3 rounded focus:bg-transparent outline-lightOrange transition-all"
-                    id=""
                   ></textarea>
-                </div>
-                <div>
-                  <label className="text-sm text-gray-600 font-medium mb-1 block">Upload file</label>
-                  <input
-                    type="file"
-                    onChange={(e) => setFile(e.target.files[0])}
-                    className="w-full text-gray-400 font-medium text-sm bg-white border file:cursor-pointer cursor-pointer file:border-0 file:py-3 file:px-4 file:mr-4 file:bg-gray-100 file:hover:bg-gray-200 file:text-gray-500 rounded"
-                  />
-                  <p className="text-xs text-gray-400 mt-2">Maximum file size: 2MB & Max file count: 4</p>
                 </div>
               </div>
               <div className="mt-8">
                 <button
                   type="submit"
-                  onClick={(e) => handleUpdatedForm(e)}
-                  className="mx-auto block py-3 px-6 font-medium text-sm tracking-wider rounded text-white bg-lightOrange duration-200 hover:bg-orange focus:outline-none"
+                  disabled={saving}
+                  className="mx-auto block py-3 px-6 font-medium text-sm tracking-wider rounded text-white bg-lightOrange duration-200 hover:bg-orange focus:outline-none disabled:opacity-60"
                 >
-                  Save Changes
+                  {saving ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>
