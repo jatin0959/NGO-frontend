@@ -5,8 +5,7 @@ import { Link } from "react-router-dom"
 import Navbar from "../components/Navbar/Navbar"
 import Footer from "../components/Footer/Footer"
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
-
+const BASE_URL = import.meta.env.VITE_BASE_URL.replace(/\/+$/, "")
 
 function Interests() {
   const { userInterests } = useAuth()
@@ -23,7 +22,7 @@ function Interests() {
             userInterests.map((interest) => {
               const listing = interest.listing
               const imagePath = listing?.files?.[0] || listing?.images?.[0]
-              const image = imagePath ? `${BASE_URL}${imagePath}` : "/placeholder.svg"
+              const image = imagePath ? `${BASE_URL}${imagePath.startsWith("/") ? imagePath : "/" + imagePath}` : "/placeholder.svg"
 
               const detailUrl = `/${listing?.__t === "ProductListing" ? "productDetail" : "serviceDetail"}/${listing._id}`
 
