@@ -56,9 +56,12 @@ function EditProduct() {
     const finalFormData = { ...formData, files: image }
     console.log(finalFormData)
 
-    const response = await axios.put(`${host_url}/listings/product/${productId}`, finalFormData, {
+    const url = `${host_url.replace(/\/+$/, "")}/listings/product/${productId}`
+
+    const response = await axios.put(url, finalFormData, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     })
+    
 
     console.log(response)
   }
