@@ -10,41 +10,26 @@ import { Link } from "react-router-dom"
 function NotificationCenter() {
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
-  const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const { api } = useAuth()
 
   const fetchNotifications = async () => {
     if (!localStorage.getItem("token")) return
-
     setLoading(true)
     setError(null)
 
     try {
       const response = await api.get("api/notifications")
-      console.log("Notifications API response:", response.data)
-
       if (response.data && response.data.data) {
-        // Only show the 5 most recent notifications in the dropdown
         setNotifications(response.data.data.slice(0, 5))
       } else {
         setNotifications([])
-        console.warn("No notifications found in response")
       }
     } catch (error) {
-      console.error("Error fetching notifications:", error)
       setError("Failed to load notifications")
-
-      if (isOpen) {
-        if (error.code === "ERR_NETWORK") {
-          toast.error("Network error. Please check your connection.")
-        } else if (error.response?.status === 401) {
-          toast.error("Authentication error. Please log in again.")
-        } else {
-          toast.error("Failed to load notifications")
-        }
-      }
+      if (error.response?.status === 401) toast.error("Please login again")
+      else toast.error("Error loading notifications")
     } finally {
       setLoading(false)
     }
@@ -55,95 +40,52 @@ function NotificationCenter() {
 
     try {
       const response = await api.get("api/notifications/count")
-
-      if (response.data && typeof response.data.count === "number") {
-        setUnreadCount(response.data.count)
-      } else {
-        setUnreadCount(0)
-      }
+      setUnreadCount(response.data?.count || 0)
     } catch (error) {
       console.error("Error fetching unread count:", error)
-      // Don't set unread count to 0 on error to avoid flickering
     }
   }
 
   const markAsRead = async (notificationId) => {
     try {
       await api.put("api/notifications/mark-read", { notificationIds: [notificationId] })
-
-      // Update local state
-      setNotifications(
-        notifications.map((notification) =>
-          notification._id === notificationId ? { ...notification, read: true } : notification,
-        ),
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === notificationId ? { ...n, read: true } : n))
       )
-
-      // Update unread count
       setUnreadCount((prev) => Math.max(0, prev - 1))
-    } catch (error) {
-      console.error("Error marking notification as read:", error)
-
-      if (error.code === "ERR_NETWORK") {
-        toast.error("Network error. Please check your connection.")
-      } else {
-        toast.error("Failed to mark notification as read")
-      }
+    } catch {
+      toast.error("Failed to mark as read")
     }
   }
 
   const markAllAsRead = async () => {
-    const unreadIds = notifications.filter((notification) => !notification.read).map((notification) => notification._id)
-
+    const unreadIds = notifications.filter((n) => !n.read).map((n) => n._id)
     if (unreadIds.length === 0) return
 
     try {
       await api.put("api/notifications/mark-read", { notificationIds: unreadIds })
-
-      // Update local state
-      setNotifications(notifications.map((notification) => ({ ...notification, read: true })))
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
       setUnreadCount(0)
-      toast.success("All notifications marked as read")
-    } catch (error) {
-      console.error("Error marking all notifications as read:", error)
-
-      if (error.code === "ERR_NETWORK") {
-        toast.error("Network error. Please check your connection.")
-      } else {
-        toast.error("Failed to mark all notifications as read")
-      }
+      toast.success("Marked all as read")
+    } catch {
+      toast.error("Failed to mark all as read")
     }
   }
 
   useEffect(() => {
-    if (localStorage.getItem("token")) {
-      fetchUnreadCount()
-
-      // Set up polling for new notifications
-      const interval = setInterval(() => {
-        fetchUnreadCount()
-      }, 60000) // Check every minute
-
-      return () => clearInterval(interval)
-    }
+    fetchUnreadCount()
+    const interval = setInterval(fetchUnreadCount, 60000)
+    return () => clearInterval(interval)
   }, [])
 
   return (
     <div className="drawer drawer-end w-auto">
-      <input
-        id="notification-drawer"
-        type="checkbox"
-        className="drawer-toggle"
-        checked={isOpen}
-        onChange={() => setIsOpen(!isOpen)}
-      />
+      <input id="notification-drawer" type="checkbox" className="drawer-toggle" />
       <div className="drawer-content">
         <label
           htmlFor="notification-drawer"
           className="btn btn-ghost btn-circle drawer-button"
-          onClick={() => {
-            setIsOpen(!isOpen)
-            if (!isOpen) fetchNotifications()
-          }}
+          onClick={fetchNotifications}
         >
           <div className="indicator">
             <Bell className="h-5 w-5" />
@@ -156,59 +98,41 @@ function NotificationCenter() {
         </label>
       </div>
       <div className="drawer-side z-50">
-        <label
-          htmlFor="notification-drawer"
-          aria-label="close sidebar"
-          className="drawer-overlay"
-          onClick={() => setIsOpen(false)}
-        ></label>
+        <label htmlFor="notification-drawer" className="drawer-overlay"></label>
         <div className="menu bg-base-200 text-base-content min-h-full w-80 p-4">
-          <div className="flex justify-between items-center border-b border-gray-400 pb-2 mb-1">
-            <p className="font-semibold text-lg">Notifications</p>
-            <div className="flex items-center gap-2">
-              {unreadCount > 0 && (
-                <button onClick={markAllAsRead} className="text-xs text-blue-500 hover:underline">
-                  Mark all as read
-                </button>
-              )}
-              <div className="bg-lightOrange text-white rounded-full px-3 py-1">
-                <span>{unreadCount}</span>
-              </div>
-            </div>
+          <div className="flex justify-between items-center border-b pb-2 mb-2">
+            <h2 className="font-semibold text-lg">Notifications</h2>
+            {unreadCount > 0 && (
+              <button onClick={markAllAsRead} className="text-sm text-blue-500 hover:underline">
+                Mark all as read
+              </button>
+            )}
           </div>
 
           <div className="overflow-y-auto max-h-[calc(100vh-100px)]">
             {loading ? (
-              <div className="flex justify-center items-center h-20">
+              <div className="flex justify-center py-6">
                 <l-tail-chase size="30" speed="1.75" color="#FA812F"></l-tail-chase>
               </div>
             ) : error ? (
-              <div className="text-center py-8 text-red-500">
-                <p>{error}</p>
-                <button onClick={fetchNotifications} className="mt-2 text-sm text-lightOrange hover:underline">
-                  Try again
-                </button>
-              </div>
-            ) : notifications.length > 0 ? (
+              <div className="text-center text-red-500">{error}</div>
+            ) : notifications.length === 0 ? (
+              <div className="text-center text-gray-500 py-6">No notifications</div>
+            ) : (
               <>
-                {notifications.map((notification) => (
-                  <NotificationItem key={notification._id} notification={notification} onMarkAsRead={markAsRead} />
+                {notifications.map((n) => (
+                  <NotificationItem key={n._id} notification={n} onMarkAsRead={markAsRead} />
                 ))}
                 <div className="text-center mt-4 border-t pt-4">
                   <Link
                     to="/notifications"
                     className="text-lightOrange hover:underline flex items-center justify-center gap-1"
-                    onClick={() => setIsOpen(false)}
                   >
-                    View all notifications
+                    View all
                     <ExternalLink className="h-3 w-3" />
                   </Link>
                 </div>
               </>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <p>No notifications yet</p>
-              </div>
             )}
           </div>
         </div>
