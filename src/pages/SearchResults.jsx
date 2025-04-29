@@ -36,10 +36,18 @@ function SearchResults() {
       setLoading(true)
       try {
         const response = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/listings/search?state=${state || ""}&query=${query || ""}`,
-        )
+         `${import.meta.env.VITE_BASE_URL}/api/listings/search?state=${state || ""}&query=${query || ""}`.replace(/([^:]\/)\/+/g, '$1'),
 
-        setResults(response.data.data)
+        )
+        const apiData = response.data?.data || {};
+
+        setResults({
+          products: apiData.product || [],
+          services: apiData.service || [],
+          jobs: apiData.job || [],
+          matrimony: apiData.matrimony || [],
+        });
+        
       } catch (error) {
         console.error("Error fetching search results:", error)
         toast.error("Failed to fetch search results")
@@ -47,6 +55,7 @@ function SearchResults() {
         setLoading(false)
       }
     }
+    
 
     // Try to get results from localStorage first
     const savedResults = localStorage.getItem("searchResults")
@@ -70,8 +79,14 @@ function SearchResults() {
   }, [location.search])
 
   const getTotalCount = () => {
-    return results.products.length + results.services.length + results.jobs.length + results.matrimony.length
-  }
+    return (
+      (results?.products?.length || 0) +
+      (results?.services?.length || 0) +
+      (results?.jobs?.length || 0) +
+      (results?.matrimony?.length || 0)
+    );
+  };
+  
 
   return (
     <>
